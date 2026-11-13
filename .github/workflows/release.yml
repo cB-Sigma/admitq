@@ -1,43 +1,81 @@
 name: Release
 
-# Publishes to PyPI when a version tag is pushed.  Uses PyPI trusted publishing (OIDC):
-# no API token is stored in the repository.  The PyPI project must list this repository,
-# this workflow file and the "pypi" environment as a trusted publisher.
+# Publishes to PyPI and creates the GitHub release (and its tag).
+# Run it from the Actions tab ("Run workflow") on main, or push a tag vX.Y.Z.
+# The version comes from src/admitq/_version.py. Needs the PYPI_API_TOKEN secret.
 
 on:
   push:
-    tags:
-      - "v*"
+    tags: ["v*"]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 jobs:
-  publish:
-    name: build and publish
+  build:
+    name: Build distributions
     runs-on: ubuntu-latest
-    environment:
-      name: pypi
-      url: https://pypi.org/project/admitq/
-    permissions:
-      contents: read
-      id-token: write
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
         with:
           python-version: "3.12"
-      - name: Install build tooling
+      - run: python -m pip install --upgrade pip build twine
+      - name: Read the package version
+        id: version
         run: |
-          python -m pip install --upgrade pip
-          python -m pip install build twine
-      - name: The tag must match the package version
-        run: |
-          version="$(python -c "exec(open('src/admitq/_version.py').read()); print(__version__)")"
-          test "v${version}" = "${GITHUB_REF_NAME}"
+          version="$(python -c "import re; print(re.search(r'__version__\s*=\s*[\x22\x27]([^\x22\x27]+)', open('src/admitq/_version.py').read()).group(1))")"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          if [ "${GITHUB_REF_TYPE}" = "tag" ] && [ "v${version}" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match package version ${version}" >&2
+            exit 1
+          fi
       - run: python -m build
       - run: twine check --strict dist/*
-      - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+      - name: Smoke-test the wheel
+        run: |
+          python -m venv /tmp/clean
+          /tmp/clean/bin/pip install dist/*.whl
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist/
+          if-no-files-found: error
+
+  publish:
+    name: Publish to PyPI
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1
         with:
           password: ${{ secrets.PYPI_API_TOKEN }}
+
+  github-release:
+    name: GitHub release
+    needs: [build, publish]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist/
+      - name: Create the release and tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+        run: |
+          if gh release view "v${VERSION}" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "v${VERSION}" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+          else
+            gh release create "v${VERSION}" dist/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --generate-notes
+          fi
