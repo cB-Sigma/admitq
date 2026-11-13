@@ -1,0 +1,30 @@
+ 07:59:15 up  1:27,  0 user,  load average: 3.21, 3.26, 4.83
+calibration: 33 tokens/s for a single uncontended request
+
+offered load: up to 85 output tokens/s against ~33 (2.6x), 30 s per arm, seed 2
+good = completed within 10 s; clients give up after 30 s
+
+== no admission control
+tenant         sent     ok   shed  t/out  shed%   p50 s   p99 s  ttfb99  good/s   tok/s
+---------------------------------------------------------------------------------------
+alice             9      7      0      2   0.0%   27.27   29.54   29.06    0.03     0.5
+bob               9      8      0      1   0.0%   19.95   29.89   29.44    0.03     0.5
+noisy            23     11      0     12   0.0%   14.47   27.32   24.37    0.13    12.8
+all              41     26      0     15   0.0%   16.82   29.89   29.44    0.20    13.9
+
+== admitq
+tenant         sent     ok   shed  t/out  shed%   p50 s   p99 s  ttfb99  good/s   tok/s
+---------------------------------------------------------------------------------------
+alice             9      9      0      0   0.0%    2.29    4.07    3.61    0.30     4.8
+bob               9      9      0      0   0.0%    2.90    4.24    3.77    0.30     4.8
+noisy            23      7     16      0  69.6%    8.58   10.88    6.63    0.20    19.2
+all              41     25     16      0  39.0%    2.90   10.88    6.63    0.80    28.8
+    admitq_shed_total{tenant="noisy",priority="interactive",reason="predicted_wait"} 5
+    admitq_shed_total{tenant="noisy",priority="interactive",reason="queue_timeout"} 11
+    admitq_completed_total{tenant="alice",outcome="ok"} 9
+    admitq_completed_total{tenant="bob",outcome="ok"} 9
+    admitq_completed_total{tenant="noisy",outcome="ok"} 7
+    admitq_actual_tokens_total{tenant="alice",source="counted"} 291
+    admitq_actual_tokens_total{tenant="bob",source="counted"} 300
+    admitq_actual_tokens_total{tenant="noisy",source="counted"} 877
+

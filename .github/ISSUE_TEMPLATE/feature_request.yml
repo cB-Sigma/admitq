@@ -1,0 +1,22 @@
+name: Feature request
+description: Something admitq should be able to do
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: The problem
+      description: What are you trying to do, and what gets in the way today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: What you would like
+      description: An API sketch helps.  So does saying what you would *not* expect it to do.
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives you have considered
+      description: >
+        Including "do it in the gateway instead" - admitq deliberately stays a library.

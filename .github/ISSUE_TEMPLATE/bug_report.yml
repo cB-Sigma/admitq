@@ -1,0 +1,43 @@
+name: Bug report
+description: Something admitq does wrong
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What you did, what you expected, what you got instead.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: >
+        The smallest script or test that shows it.  `admitq.testing` (FakeModelBackend,
+        call_asgi, run_virtual) usually makes this a dozen lines with no model server.
+      render: python
+  - type: textarea
+    id: config
+    attributes:
+      label: admitq configuration
+      description: The options you pass to InferenceAdmission / AdmissionController.
+      render: python
+  - type: input
+    id: versions
+    attributes:
+      label: Versions
+      description: admitq, Python, ASGI server and framework, model server (if relevant).
+      placeholder: admitq 0.1.0, Python 3.12, uvicorn 0.30, FastAPI 0.115, vLLM 0.9
+    validations:
+      required: true
+  - type: dropdown
+    id: backend
+    attributes:
+      label: Budget backend
+      options:
+        - in-memory (default)
+        - Redis
+        - custom
+    validations:
+      required: true

@@ -1,0 +1,41 @@
+name: Release
+
+# Publishes to PyPI when a version tag is pushed.  Uses PyPI trusted publishing (OIDC):
+# no API token is stored in the repository.  The PyPI project must list this repository,
+# this workflow file and the "pypi" environment as a trusted publisher.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    name: build and publish
+    runs-on: ubuntu-latest
+    environment:
+      name: pypi
+      url: https://pypi.org/project/admitq/
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install build tooling
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install build twine
+      - name: The tag must match the package version
+        run: |
+          version="$(python -c "exec(open('src/admitq/_version.py').read()); print(__version__)")"
+          test "v${version}" = "${GITHUB_REF_NAME}"
+      - run: python -m build
+      - run: twine check --strict dist/*
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1

@@ -1,0 +1,33 @@
+ 07:36:57 up  1:05,  0 user,  load average: 8.92, 9.52, 7.58
+calibration: 24 tokens/s for a single uncontended request
+
+offered load: up to 85 output tokens/s against ~24 (3.5x), 90 s per arm, seed 1
+good = completed within 10 s; clients give up after 30 s
+
+== no admission control
+tenant         sent     ok   shed  t/out  shed%   p50 s   p99 s  ttfb99  good/s   tok/s
+---------------------------------------------------------------------------------------
+alice            17      7      0     10   0.0%   29.37   29.92   29.13    0.00     0.0
+bob              24     12      0     12   0.0%   28.50   29.82   29.17    0.04     0.7
+noisy            83      9      0     74   0.0%   18.14   30.00   25.86    0.02     2.1
+all             124     28      0     96   0.0%   28.50   30.00   29.17    0.07     2.8
+
+== admitq
+tenant         sent     ok   shed  t/out  shed%   p50 s   p99 s  ttfb99  good/s   tok/s
+---------------------------------------------------------------------------------------
+alice            17     15      2      0  11.8%    3.93    7.32    6.65    0.17     2.7
+bob              24     22      2      0   8.3%    4.36    6.10    5.55    0.24     3.9
+noisy            83     18     65      0  78.3%    8.37   11.39    6.79    0.16    14.9
+all             124     55     69      0  55.6%    4.91   11.39    6.79    0.57    21.5
+    admitq_shed_total{tenant="alice",priority="interactive",reason="predicted_wait"} 2
+    admitq_shed_total{tenant="bob",priority="interactive",reason="predicted_wait"} 2
+    admitq_shed_total{tenant="noisy",priority="interactive",reason="predicted_wait"} 39
+    admitq_shed_total{tenant="noisy",priority="interactive",reason="queue_timeout"} 26
+    admitq_completed_total{tenant="alice",outcome="ok"} 15
+    admitq_completed_total{tenant="bob",outcome="ok"} 22
+    admitq_completed_total{tenant="noisy",outcome="ok"} 18
+    admitq_actual_tokens_total{tenant="alice",source="counted"} 489
+    admitq_actual_tokens_total{tenant="bob",source="counted"} 754
+    admitq_actual_tokens_total{tenant="noisy",source="counted"} 2278
+
+ 07:40:50 up  1:09,  0 user,  load average: 8.65, 9.24, 7.92
